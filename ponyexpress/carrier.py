@@ -37,7 +37,7 @@ class BaseCarrier:
 	'''
 	def parse_json(self, response):
 		try:
-			return json.loads(response.content)
+			return json.loads(response)
 		except ValueError:
 			raise SyntaxError('The webserver responded with malformed %s' % self.response_type)
 
@@ -52,7 +52,7 @@ class BaseCarrier:
 	'''
 	def parse_xml(self, response):
 		try:
-			return et.fromstring(response.content)
+			return et.fromstring(response)
 		except ParseError:
 			raise SyntaxError('The webserver responded with malformed %s' % self.response_type)
 
@@ -64,7 +64,7 @@ class BaseCarrier:
 	'''
 	def track(self, tracking_id):
 		# Checks to make sure that the carrier overrode the endpoint
-		if not tracking_endpoint:
+		if not self.tracking_endpoint:
 			raise NotImplementedError('Failed to specify the tracking service endpoint.')
 
 		# Make a request to the specified URL
@@ -73,7 +73,7 @@ class BaseCarrier:
 
 		# Check if we got a success, parse the results and construct the TrackingResponse object
 		if response.status_code == 200:
-			parsed_response = getattr(self, 'parse_' + self.response_type.lower())(response)
+			parsed_response = getattr(self, 'parse_' + self.response_type.lower())(response.content)
 
 			# We have no idea what the response looks like for the general case, so pass it up
 			return parsed_response
