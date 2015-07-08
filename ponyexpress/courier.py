@@ -5,12 +5,11 @@ import os, requests, json
 import xml.etree.ElementTree as et
 from xml.etree.ElementTree import ParseError
 from datetime import datetime as dt
-
 from exceptions import NotImplementedError, SyntaxError, ValueError
 
 from ponyexpress.config import JSON_RESPONSE
 
-class BaseCarrier:
+class BaseCourier(object):
 	'''
 	Provides base level attributes and methods for new carriers.
 	'''
@@ -57,12 +56,23 @@ class BaseCarrier:
 			raise SyntaxError('The webserver responded with malformed %s' % self.response_type)
 
 	'''
+	Base error handling method. Throws the appropriate exceptions. 
+	Simply throw an exception saying something went wrong, but we don't know what to do about it.
+
+	## Parameters
+	`error` - The error data associated with the response.
+
+	'''
+	def process_exception(self, *kwargs):
+		raise NotImplementedError('An error occured in your request. Unable to parse detailed error message.')
+
+	'''
 	Base tracking method.
 
 	## Parameters
 	`tracking_id` - String representing the tracking identifier for your package/letter.
 	'''
-	def track(self, tracking_id):
+	def track(self, tracking_id, tracking_endpoint=tracking_endpoint):
 		# Checks to make sure that the carrier overrode the endpoint
 		if not self.tracking_endpoint:
 			raise NotImplementedError('Failed to specify the tracking service endpoint.')
@@ -73,11 +83,16 @@ class BaseCarrier:
 
 		# Check if we got a success, parse the results and construct the TrackingResponse object
 		if response.status_code == 200:
+			# Save the response object for user inspection
+			self._server_response = response
+
+			# Parse the content of the response with the specified response_type
 			parsed_response = getattr(self, 'parse_' + self.response_type.lower())(response.content)
 
 			# We have no idea what the response looks like for the general case, so pass it up
 			return parsed_response
+		else:
+			self.process_exception()
 
 		# If we got an error, return None, there was probably an exception thrown along the way too
-		return None
 	

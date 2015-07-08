@@ -13,17 +13,16 @@ class TrackingResponse:
 	`status` - Current status of the package/letter, corresponds to the latest `TrackingEvent.type`.
 	'''
 
-	events = []
-
 	# Init for new TrackingResponse
 	def __init__(self, *events):
+		self.events = []
 		self.addEvents(*events)
 
 	# The current status of the tracked package/letter
 	@property
 	def status(self):
 		# Make sure we got events
-		if self.events:
+		if len(self.events):
 			return self.events[0].type
 		return 'UNKNOWN'
 
@@ -32,25 +31,28 @@ class TrackingResponse:
 	@property
 	def accepted(self):
 		# Check all of the events for an ACCEPTANCE one
-	    for event in self.events:
-	    	if event.type in ACCEPTANCE_METHODS:
-	    		return event.datetime
+	    for event in reversed(self.events):
+	    	for method in ACCEPTANCE_METHODS:
+	    		if method in event.type:
+	    			return event.datetime
 	    return None
 
 	# If the package/letter has been delivered by the carrier.
 	# Returns an datetime object if so
 	@property
 	def delivered(self):
-		# Check all of the events for an ACCEPTANCE one
+		# Check all of the events for an DELIVERED one
 	    for event in self.events:
-	    	if event.type in DELIVERED_METHODS:
-	    		return event.datetime
+	    	for method in DELIVERED_METHODS:
+	    		if method in event.type:
+	    			return event.datetime
 	    return None
 
 	# Adds tracking events to the response
 	def addEvents(self, *events):
 		# Extend the list of results with the new ones
-		self.events.extend(events);
+		if len(events):
+			self.events.extend(events);
 
 
 class TrackingEvent:
@@ -66,14 +68,10 @@ class TrackingEvent:
 		`postal_code` - The zip/postal code associated with the particular area within the above city. 
 		'''
 
-		# Default date/time string parsers
-		DATE_FORMATER = '%m-%d-%Y'
-		TIME_FORMATER = '%H:%M:%S'
-
 		# Init method for creating a new instance of the TrackingEvent.
 		def __init__(self, state, city, postal_code, etype='UNDEFINED', 
 					 date='01-01-1970', time='00:00:00', 
-					 date_format=DATE_FORMATER, time_format=TIME_FORMATER):
+					 date_format='%m-%d-%Y', time_format='%H:%M:%S'):
 			self.type = etype.upper()
 			self.date = dt.strptime(date, date_format).date()
 			self.time = dt.strptime(time, time_format).time()
@@ -86,6 +84,6 @@ class TrackingEvent:
 			return dt.combine(self.date, self.time)
 
 		# Returns a nice string representation of the date and time
-		def isoDatetime(self, DATE_FORMAT='%B %d, %Y', TIME_FORMAT='%I:%M %p'):
-		    return self.datetime.strftime(' '.join([DATE_FORMAT, TIME_FORMAT]))
+		def isoDatetime(self, date_format='%B %d, %Y', time_format='%I:%M %p'):
+		    return self.datetime.strftime(' '.join([date_format, time_format]))
 	
