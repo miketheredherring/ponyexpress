@@ -13,15 +13,17 @@ class BaseCourier(object):
 	'''
 	Provides base level attributes and methods for new carriers.
 	'''
-	tracking_endpoint = None
-	shipping_endpoint = None
-	address_validation_endpoint = None
-
-	# Default response parse is JSON. See `ponyexpress.config` for preset types.
-	response_type = JSON_RESPONSE
-
 	# Creates a new instance of the postal carrier base object
 	def __init__(self, username, password=''):
+		# Init instance variables
+		self.tracking_endpoint = None
+		self.shipping_endpoint = None
+		self.address_validation_endpoint = None
+
+		# Default response parse is JSON. See `ponyexpress.config` for preset types.
+		self.response_type = JSON_RESPONSE
+
+		# User authentication
 		self.username = username
 		self.password = password
 
@@ -32,7 +34,7 @@ class BaseCourier(object):
 	`response` - The HTTP response body received from a web server to be parsed.
 
 	## Returns 
-	Object - JSON parsed response body.
+	`Object` - JSON parsed response body.
 	'''
 	def parse_json(self, response):
 		try:
@@ -47,7 +49,7 @@ class BaseCourier(object):
 	`response` - The HTTP response body received from a web server to be parsed.\
 
 	## Returns 
-	ElementTree - XML parsed response body.
+	`XMLElementTree` - XML parsed response body.
 	'''
 	def parse_xml(self, response):
 		try:
@@ -61,24 +63,29 @@ class BaseCourier(object):
 
 	## Parameters
 	`error` - The error data associated with the response.
-
 	'''
 	def process_exception(self, *kwargs):
 		raise NotImplementedError('An error occured in your request. Unable to parse detailed error message.')
 
 	'''
-	Base tracking method.
+	Base XMl response. Gets and parses a servers response, with basic error handling.
 
 	## Parameters
 	`tracking_id` - String representing the tracking identifier for your package/letter.
-	'''
-	def track(self, tracking_id, tracking_endpoint=tracking_endpoint):
-		# Checks to make sure that the carrier overrode the endpoint
-		if not self.tracking_endpoint:
-			raise NotImplementedError('Failed to specify the tracking service endpoint.')
 
+	## Returns
+	`Response` - The parsed response from the server. Can be XMLElementTree or JSON decoded Python object.
+	'''
+	def get_server_response(self, endpoint='', params={}, method='default'):
+		# Checks to make sure that the carrier overrode the endpoint
+		if not endpoint:
+			raise NotImplementedError('Failed to specify the %s service endpoint.' % method)
+
+		# Add default params
+		params.update({'username': self.username, 'password': self.password})
+		
 		# Make a request to the specified URL
-		endpoint = self.tracking_endpoint.format(username=self.username, tracking_id=tracking_id)
+		endpoint = endpoint.format(**params)
 		response = requests.get(endpoint)
 
 		# Check if we got a success, parse the results and construct the TrackingResponse object

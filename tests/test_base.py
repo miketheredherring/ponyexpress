@@ -47,7 +47,7 @@ class BaseTrackingTests(TestCase):
 	def test_no_tracking_endpoint(self):
 		# Expect an exception to be thrown, no tracking endpoint specified
 		try:
-			self.unknown_courier.track('1234567890')
+			self.unknown_courier.get_server_response(self.unknown_courier.tracking_endpoint, {'tracking_id': '1234567890'}, 'Tracking')
 		except NotImplementedError:
 			self.assertTrue(True)
 
@@ -57,7 +57,7 @@ class BaseTrackingTests(TestCase):
 		self.unknown_courier.tracking_endpoint = 'http://production.shippingapis.com/ShippingAPI.dll?API=TrackV2&XML=<TrackRequest USERID="{username}"><TrackID ID="{tracking_id}"></TrackID></TrackRequest>'
 		self.unknown_courier.response_type = XML_RESPONSE
 
-		response = self.unknown_courier.track('9374889949010711251710')
+		response = self.unknown_courier.get_server_response(self.unknown_courier.tracking_endpoint, {'tracking_id': '9374889949010711251710'}, method='Tracking')
 
 		self.assertTrue(response is not None)
 
@@ -68,7 +68,7 @@ class BaseTrackingTests(TestCase):
 		self.unknown_courier.response_type = XML_RESPONSE
 
 		try:
-			response = self.unknown_courier.track('9374889949010711251710')
+			response = self.unknown_courier.get_server_response(self.unknown_courier.tracking_endpoint, {'tracking_id': '9374889949010711251710'}, method='Tracking')
 		except NotImplementedError:
 			self.assertTrue(True)
 

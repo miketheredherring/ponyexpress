@@ -27,4 +27,32 @@ class USPSTests(TestCase):
 			response = self.usps.track('93748899490101251710')
 		except NotImplementedError:
 			self.assertTrue(True)
-		
+
+	# Test address validation for a correct address
+	def test_valid_address_validation(self):
+		response = self.usps.validate_address('CA', 'Cupertino', '95014', '1 Infinite Loop')
+
+		# Did we get a valid response?
+		self.assertTrue(response.validated)
+
+		# Confirm zipcode disection
+		self.assertEqual(response.address.simple_zip, '95014')
+
+	# Test address validation for an incorrect address, which resolves to a single correct address.
+	def test_invalid_address_validation_complete_correction(self):
+		response = self.usps.validate_address('CA', 'Cupertino', '9501', '1 Infinite Circle')
+
+		# Did we get a valid response?
+		self.assertTrue(response.validated)
+
+		# Confirm that the two incorrect pieces were fixed
+		self.assertEqual(response.address.zip, '95014-2083')
+		self.assertEqual(response.address.street, '1 Infinite Loop')
+
+	# Test address validation for an incorrect address, which resolves to no address.
+	def test_invalid_address_validation_no_correction(self):
+		response = self.usps.validate_address('CA', '', '', '1 Infinite')
+
+		# We didnt get a valid address
+		self.assertFalse(response.validated)
+		self.assertIsNone(response.address)
