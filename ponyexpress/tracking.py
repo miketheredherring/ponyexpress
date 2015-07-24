@@ -16,7 +16,7 @@ class TrackingResponse:
 	# Init for new TrackingResponse
 	def __init__(self, *events):
 		self.events = []
-		self.addEvents(*events)
+		self.add(*events)
 
 	# The current status of the tracked package/letter
 	@property
@@ -49,7 +49,7 @@ class TrackingResponse:
 	    return None
 
 	# Adds tracking events to the response
-	def addEvents(self, *events):
+	def add(self, *events):
 		# Extend the list of results with the new ones
 		if len(events):
 			self.events.extend(events);

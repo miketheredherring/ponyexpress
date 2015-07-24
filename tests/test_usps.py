@@ -1,8 +1,9 @@
 import os
-from exceptions import NotImplementedError
+from exceptions import NotImplementedError, TypeError
 from datetime import datetime as dt
 from unittest import TestCase
 
+from ponyexpress.rates import Package
 from ponyexpress.usps import USPSCourier
 
 class USPSTests(TestCase):
@@ -30,7 +31,7 @@ class USPSTests(TestCase):
 
 	# Test address validation for a correct address
 	def test_valid_address_validation(self):
-		response = self.usps.validate_address('CA', 'Cupertino', '95014', '1 Infinite Loop')
+		response = self.usps.validateAddress('CA', 'Cupertino', '95014', '1 Infinite Loop')
 
 		# Did we get a valid response?
 		self.assertTrue(response.validated)
@@ -40,7 +41,7 @@ class USPSTests(TestCase):
 
 	# Test address validation for an incorrect address, which resolves to a single correct address.
 	def test_invalid_address_validation_complete_correction(self):
-		response = self.usps.validate_address('CA', 'Cupertino', '9501', '1 Infinite Circle')
+		response = self.usps.validateAddress('CA', 'Cupertino', '9501', '1 Infinite Circle')
 
 		# Did we get a valid response?
 		self.assertTrue(response.validated)
@@ -51,8 +52,33 @@ class USPSTests(TestCase):
 
 	# Test address validation for an incorrect address, which resolves to no address.
 	def test_invalid_address_validation_no_correction(self):
-		response = self.usps.validate_address('CA', '', '', '1 Infinite')
+		response = self.usps.validateAddress('CA', '', '', '1 Infinite')
 
 		# We didnt get a valid address
 		self.assertFalse(response.validated)
 		self.assertIsNone(response.address)
+
+	# Test rate calculation for a standard large box
+	def test_valid_rate_calculation(self):
+		package = Package((1, 8), 12, 12, 13, True, '11218', '11780')
+
+		response = self.usps.getRate(package=package)
+
+		# Did we get the correct number of responses
+		self.assertEqual(len(response.rates), 5)
+
+	# Test what happends when we don't provide the right arguments
+	def test_invalid_rate_calculation_arguments(self):
+		try:
+			response = self.usps.getRate()
+		except TypeError:
+			self.assertTrue(True)
+
+	# Test what happens when a poor quality package is added
+	def test_invalid_rate_calculation(self):
+		package = Package(24, 12, 12, 13, False, '11218', '11218')
+
+		try:
+			response = self.usps.getRate(package=package)
+		except NotImplementedError:
+			self.assertTrue(True)

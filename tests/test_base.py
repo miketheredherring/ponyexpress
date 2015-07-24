@@ -3,8 +3,10 @@ from datetime import datetime as dt
 from unittest import TestCase
 from exceptions import NotImplementedError, SyntaxError
 
+from ponyexpress.address import Address, AddressValidationResponse
 from ponyexpress.config import XML_RESPONSE
 from ponyexpress.courier import BaseCourier
+from ponyexpress.rates import Package, RateCalculation, RateCalculationResponse
 from ponyexpress.tracking import TrackingResponse, TrackingEvent
 
 class BaseTests(TestCase):
@@ -106,3 +108,66 @@ class BaseTrackingTests(TestCase):
 		self.assertEqual('DELIVERED', response.status)
 		self.assertEqual(dt(2015, 7, 3, 13, 21), response.accepted)
 		self.assertEqual(dt(2015, 7, 6, 7, 47), response.delivered)
+
+class BaseAddressTests(TestCase):
+	# Test out the Address object
+	def test_address_5_zip(self):
+		address = Address('CA', 'Cupertino', '95014', '1 Infinite Circle')
+		# Make sure it parsed okay
+		self.assertEqual(address.simple_zip, '95014')
+
+	# Test out the Address object
+	def test_address_5_plus_4_zip(self):
+		address = Address('CA', 'Cupertino', '95014-1234', '1 Infinite Circle')
+		# Make sure it parsed okay
+		self.assertEqual(address.simple_zip, '95014')
+
+class BaseRateTests(TestCase):
+	# Test out the Package object
+	def test_package_large_rectangular(self):
+		package = Package((1, 8), 12, 12, 13, True, '11218', '11780')
+
+		# Make sure the weight was taken as (Lbs, Ozs)
+		self.assertEqual(package.weight, (1, 8))
+
+		# Make sure sizing is correct
+		self.assertEqual(package.size, 'LARGE')
+		self.assertEqual(package.shape, 'RECTANGULAR')
+
+	# Test out the Package object
+	def test_package_regular_non_rectangular(self):
+		package = Package(24, 8, 8, 8, False, '11218', '11780')
+
+		# Make sure the weight was taken as (Lbs, Ozs)
+		self.assertEqual(package.weight, (1, 8))
+
+		# Make sure sizing is correct
+		self.assertEqual(package.size, 'REGULAR')
+		self.assertEqual(package.shape, 'NONRECTANGULAR')
+
+	# Test the RateCalculation object
+	def test_rate_calculation(self):
+		package = Package(24, 8, 8, 8, False, '11218', '11780')
+
+		rate = RateCalculation(package, 24.50, 'Priority 2-Day')
+
+		# Make sure the price is correct
+		self.assertEqual(rate.rate, 24.50)
+
+		# Reassign to test string parsing or costs
+		rate = RateCalculation(package, '42.50', 'Priority 1-Day')
+
+		# Make sure the price is correct
+		self.assertEqual(rate.rate, 42.50)
+
+	# Test the RateCalculationResponse object
+	def test_rate_calculation_response(self):
+		# Setup dummy objects
+		package = Package(24, 8, 8, 8, False, '11218', '11780')
+		rate_1 = RateCalculation(package, 24.50, 'Priority 2-Day')
+		rate_2 = RateCalculation(package, 42.50, 'Priority 1-Day')
+
+		# Rates are added in no particular ordering
+		response = RateCalculationResponse(rate_1, rate_2)
+
+		self.assertEqual(response.cheapest().rate, 24.50)

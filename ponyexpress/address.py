@@ -9,7 +9,7 @@ class AddressValidationResponse:
 	'''
 
 	# Init for new AddressValidationResponse
-	def __init__(self, *events):
+	def __init__(self, *addresses):
 		self.addresses = []
 
 	# Since we only allow single address validation, here is a simple hook for getting the validated address.
@@ -28,13 +28,13 @@ class AddressValidationResponse:
 			return True
 		return False
 
-	# Adds tracking events to the response
-	def addAddresses(self, *addresses):
+	# Adds `Addresses` to the response
+	def add(self, *addresses):
 		# Extend the list of results with the new ones
 		if len(addresses):
 			self.addresses.extend(addresses);
 
-class Address:
+class Address(object):
 	'''
 	Simple object containing all of the identifiers associated with a given US Postal address.
 

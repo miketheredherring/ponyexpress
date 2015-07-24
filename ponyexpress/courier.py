@@ -85,8 +85,8 @@ class BaseCourier(object):
 		params.update({'username': self.username, 'password': self.password})
 		
 		# Make a request to the specified URL
-		endpoint = endpoint.format(**params)
-		response = requests.get(endpoint)
+		self.last_endpoint = endpoint.format(**params)
+		response = requests.get(self.last_endpoint)
 
 		# Check if we got a success, parse the results and construct the TrackingResponse object
 		if response.status_code == 200:

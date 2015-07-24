@@ -1,7 +1,12 @@
+import HTMLParser
+from exceptions import TypeError
+
+from ponyexpress.address import AddressValidationResponse, Address
 from ponyexpress.config import XML_RESPONSE
 from ponyexpress.courier import BaseCourier
+from ponyexpress.rates import Package, RateCalculation, RateCalculationResponse
 from ponyexpress.tracking import TrackingResponse, TrackingEvent
-from ponyexpress.address import AddressValidationResponse, Address
+
 
 # USPSTracking is a class which is able to interface with the USPS Package Tracking API
 # The user will provide a tracking number, and then can query the various aspects
@@ -11,7 +16,10 @@ class USPSCourier(BaseCourier):
         super(USPSCourier, self).__init__(username, password)
 
         # Production URL
-        self.tracking_endpoint = 'http://production.shippingapis.com/ShippingAPI.dll?API=TrackV2&XML=<TrackFieldRequest USERID="{username}"><TrackID ID="{tracking_id}"></TrackID></TrackFieldRequest>'
+        self.tracking_endpoint = 'http://production.shippingapis.com/ShippingAPI.dll?API=TrackV2&XML=' + \
+            '<TrackFieldRequest USERID="{username}">' + \
+                '<TrackID ID="{tracking_id}"></TrackID>' + \
+            '</TrackFieldRequest>'
         self.address_validation_endpoint = 'http://production.shippingapis.com/ShippingAPI.dll?API=Verify&XML=' + \
             '<AddressValidateRequest USERID="{username}">' + \
                 '<IncludeOptionalElements>true</IncludeOptionalElements>' + \
@@ -26,6 +34,13 @@ class USPSCourier(BaseCourier):
                     '<Zip4>{zip4}</Zip4>' + \
                 '</Address>' + \
             '</AddressValidateRequest>'
+        self._base_rate_endpoint = 'http://production.shippingapis.com/ShippingAPI.dll?API={api}&XML=' + \
+            '<{api}Request USERID="{{username}}">' + \
+                '<Revision>2</Revision>' + \
+                '{{package}}' + \
+            '</{api}Request>'
+        self.domestic_rate_endpoint = self._base_rate_endpoint.format(api='RateV4')
+        self.international_rate_endpoint = self._base_rate_endpoint.format(api='IntlRateV2')
         # Set the response type to XML
         self.response_type = XML_RESPONSE
 
@@ -54,7 +69,7 @@ class USPSCourier(BaseCourier):
     `Addresses` - One or more `Address` objects representing either the correct address or potential corrections.
     `Validity` - Whether the provided address was valid.
     '''
-    def validate_address(self, state, city, postal_code, street_2, street_1='', name=''):
+    def validateAddress(self, state, city, postal_code, street_2, street_1='', name=''):
         postal_code = postal_code.split('-')
         # Compose the URL formatting parameters
         params = {
@@ -87,7 +102,7 @@ class USPSCourier(BaseCourier):
             zip4 = address.find('Zip4').text
 
             # Create the address object
-            response.addAddresses(
+            response.add(
                 Address(
                     address.find('State').text,
                     address.find('City').text,
@@ -134,7 +149,7 @@ class USPSCourier(BaseCourier):
         # Create the TrackingResponse and TrackingEvents
         response = TrackingResponse()
         for event in raw_events:
-            response.addEvents(
+            response.add(
                 TrackingEvent(
                     event.find('EventState').text,
                     event.find('EventCity').text,
@@ -147,4 +162,81 @@ class USPSCourier(BaseCourier):
                 )
             )
         
+        return response
+
+    '''
+    USPS Rate Calculator V4 and International V2 API.
+
+    NOTE: We currently don't support Non-rectagular packages due to girth calculations. Coming soon.
+
+    ## Parameters
+    `Package` - This is the simplist case, the user has already made a `Package` object for their request.
+        We just need to extract the attributes.
+
+    ## Returns
+    `RateCalculationResponse` - Wrapper object for the server response and `Rates` associated with the provided metrics.
+    '''
+    def getRate(self, rate_type='domestic', method='ALL', **kwargs):
+        # Extract the package item and compose the XML version of it
+        package_xml = '<Package ID="{id}">' + \
+                        '<Service>{method}</Service>' + \
+                        '<ZipOrigination>{origin_zip}</ZipOrigination>' + \
+                        '<ZipDestination>{destination_zip}</ZipDestination>' + \
+                        '<Pounds>{weight_lb}</Pounds>' + \
+                        '<Ounces>{weight_oz}</Ounces>' + \
+                        '<Container>{shape}</Container>' + \
+                        '<Size>{size}</Size>' + \
+                        '<Width>{width}</Width>' + \
+                        '<Length>{length}</Length>' + \
+                        '<Height>{height}</Height>' + \
+                        '<Machinable>true</Machinable>' + \
+                    '</Package>'
+        package = kwargs.get('package', None)
+
+        # Make sure we got a valid package before continuing
+        if package is None:
+            raise TypeError('`package` is a required argument (received None)')
+
+        # Compose the URL formatting parameters
+        params = {
+            'package': package_xml.format(
+                id='0',
+                method=method, # We only allow a single method type since documentation for multiple is poor :/.
+                origin_zip=package.origin,
+                destination_zip=package.destination,
+                weight_lb=unicode(package.weight[0]),
+                weight_oz=unicode(package.weight[1]),
+                shape=package.shape,
+                size=package.size,
+                width=unicode(package.width),
+                length=unicode(package.length),
+                height=unicode(package.height)
+            )
+        }
+
+        # Make a request for the event-level information
+        raw_response = super(USPSCourier, self).get_server_response(getattr(self, rate_type + '_rate_endpoint'), params, method='Rate')
+
+        # Extract the XML data from the parsed response
+        package_info = raw_response.find('Package')
+
+        # Check to see if we got a valid response
+        error = package_info.find('Error')
+        if error is not None:
+            return self.process_exception(error)
+
+        # Gather all of the rates that got returned
+        raw_rates = package_info.findall('Postage')
+        
+        # Create the TrackingResponse and TrackingEvents
+        response = RateCalculationResponse()
+        for rate in raw_rates:
+            response.add(
+                RateCalculation(
+                    package,
+                    rate.find('Rate').text,
+                    HTMLParser.HTMLParser().unescape(rate.find('MailService').text)
+                )
+            )
+
         return response
