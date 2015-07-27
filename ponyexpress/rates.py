@@ -1,3 +1,9 @@
+from exceptions import AttributeError
+
+# Static variables for Rates
+DOMESTIC = 'domestic'
+INTERNATIONAL = 'international'
+
 class Package(object):
 	'''
 	Represents a shippable item and contains various metrics about the item.
@@ -37,7 +43,6 @@ class Package(object):
 	@weight.setter
 	def weight(self, value):
 		# Check for the Tuple, this is a (Lb, Oz) format.
-		print type(value)
 		if isinstance(value, tuple):
 			self._weight = value
 		else:
@@ -58,7 +63,7 @@ class Package(object):
 	    	return 'RECTANGULAR'
 	    return 'NONRECTANGULAR'
 
-class RateCalculationResponse:
+class RateCalculationResponse(object):
 	'''
 	Response object containing the results of a rate calculation request.
 	This response will contain a list of rate estimates for the requested services.
@@ -84,22 +89,41 @@ class RateCalculationResponse:
 	# Since multiple rate requests can be made for several packages, we
 	# default to using the first package.
 	def cheapest(self, package_id='0'):
-		return sorted(self.rates, key=lambda x: x.rate)[0]
+		return sorted(self.rates, key=lambda x: x.price)[0]
 
-class RateCalculation:
+class RateOption(object):
+	'''
+	Describes a specific service which can be added to a `RateCalculation`.
+
+	## Attributes
+	`name` - The title of the service being provided.
+	`price` - How much does this service cost?
+	'''
+	
+	# Init method for a new `RateOption`.
+	def __init__(self, name, price, **kwargs):
+		self.name = name
+		self.price = float(price)
+
+		# Unpack potentially unknow values
+		for key, val in kwargs.iteritems():
+			setattr(self, key, val)
+
+class RateCalculation(object):
 	'''
 	Simple object containing all of the metrics provided for the package/letter,
 	as well as, the shipping information.
 
 	## Attributes
 	`item` - The `Package` associated with the calculated rate.
-	`rate` - The cost, in USD, for the specified shipping method when used with `item`.
+	`price` - The cost, in USD, for the specified shipping method when used with `item`.
 	`method` - The specified shipping method for the `Package`.
 	'''
 
-	# Init method for creating a new Address instance.
-	def __init__(self, package, rate, method):
+	# Init method for creating a new `RateCalculation instance.
+	def __init__(self, package, price, method, destination_type=DOMESTIC):
 		self.package = package
-		self.rate = float(rate)
+		self.price = float(price)
 		self.method = method
-	
+		self.type = destination_type
+		self.options = []

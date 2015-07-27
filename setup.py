@@ -22,7 +22,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 setup(
-    name='pony-express',
+    name='ponyexpress',
     version=find_version('ponyexpress', '__init__.py'),
     packages=['ponyexpress', ],
     include_package_data=True,

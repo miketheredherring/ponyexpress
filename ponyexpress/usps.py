@@ -1,16 +1,32 @@
-import HTMLParser
+import HTMLParser, re
 from exceptions import TypeError
 
 from ponyexpress.address import AddressValidationResponse, Address
 from ponyexpress.config import XML_RESPONSE
 from ponyexpress.courier import BaseCourier
-from ponyexpress.rates import Package, RateCalculation, RateCalculationResponse
+from ponyexpress.rates import (
+    DOMESTIC,
+    INTERNATIONAL,
+    Package,
+    RateCalculation,
+    RateCalculationResponse,
+    RateOption
+)
 from ponyexpress.tracking import TrackingResponse, TrackingEvent
 
 
 # USPSTracking is a class which is able to interface with the USPS Package Tracking API
 # The user will provide a tracking number, and then can query the various aspects
 class USPSCourier(BaseCourier):
+    # RE for matching service methods
+    _services = (
+        r'(PRIORITY(?: MAIL EXPRESS)?(?: COMMERCIAL)?).*',
+        r'(MEDIA)',
+        r'(LIBRARY)',
+        r'(FIRST CLASS)',
+    )
+
+    # Initialization of a new port office
     def __init__(self, username, password=''):
         # Call super
         super(USPSCourier, self).__init__(username, password)
@@ -172,14 +188,18 @@ class USPSCourier(BaseCourier):
     ## Parameters
     `Package` - This is the simplist case, the user has already made a `Package` object for their request.
         We just need to extract the attributes.
+    `Domestic` - A boolean representing whether you are shipping within the USA, and its territories, or internatinally.
+    `Detailed` - Do you want the `RateCalculations` returned to have alll service options included. For N `RateCalculations`
+        this is send of N more HTTP requests to the server. Mainly a warning this takes more time, and is overhead which might
+        not be needed unless you want to provide insurance, tracking, or other services.
 
     ## Returns
     `RateCalculationResponse` - Wrapper object for the server response and `Rates` associated with the provided metrics.
     '''
-    def getRate(self, rate_type='domestic', method='ALL', **kwargs):
+    def getRate(self, rate_type=DOMESTIC, method='ALL', detailed=False, **kwargs):
         # Extract the package item and compose the XML version of it
         package_xml = '<Package ID="{id}">' + \
-                        '<Service>{method}</Service>' + \
+                        '<Service>{{method}}</Service>' + \
                         '<ZipOrigination>{origin_zip}</ZipOrigination>' + \
                         '<ZipDestination>{destination_zip}</ZipDestination>' + \
                         '<Pounds>{weight_lb}</Pounds>' + \
@@ -197,11 +217,9 @@ class USPSCourier(BaseCourier):
         if package is None:
             raise TypeError('`package` is a required argument (received None)')
 
-        # Compose the URL formatting parameters
-        params = {
-            'package': package_xml.format(
+        # Store the packages XML representatiojn for later use/debugging
+        package._xml = package_xml.format(
                 id='0',
-                method=method, # We only allow a single method type since documentation for multiple is poor :/.
                 origin_zip=package.origin,
                 destination_zip=package.destination,
                 weight_lb=unicode(package.weight[0]),
@@ -212,9 +230,13 @@ class USPSCourier(BaseCourier):
                 length=unicode(package.length),
                 height=unicode(package.height)
             )
+
+        # The reason we format the method second is so that the getDetailedRates code can speicify without going crazy with string parsing.
+        params = {
+            'package': package._xml.format(method=method) # We only allow a single method type since documentation for multiple is poor :/.
         }
 
-        # Make a request for the event-level information
+        # Make a request for the rate-level information
         raw_response = super(USPSCourier, self).get_server_response(getattr(self, rate_type + '_rate_endpoint'), params, method='Rate')
 
         # Extract the XML data from the parsed response
@@ -240,3 +262,56 @@ class USPSCourier(BaseCourier):
             )
 
         return response
+
+    '''
+    USPS Detailed Rate Calculator V4 and International V2 API.
+
+    ## Parameters
+    `Rate` - This is the `RateCalculation` object returned from the `getRates()` method which you want more detailed services for.
+
+    ## Returns
+    `RateOption` - Wrapper object for the extra service option provided for a specific `RateCalculation`.
+    '''
+    def getDetailedRate(self, rate):
+        # Purify the shipping method, there is a lot of junk in there...
+        for service in self._services:
+            match = re.search(service, re.sub(r'<([a-zA-Z]+)></\1>', '', rate.method.encode('ascii','ignore')).upper())
+            if match is not None:
+                break
+        method = match.group(1)
+
+        # We have all the data we need for the request, already parsed, how nice!
+        params = {
+            'package': rate.package._xml.format(method=method)
+        }
+
+        # Make a request for the detailed-rate information.
+        raw_response = super(USPSCourier, self).get_server_response(getattr(self, rate.type + '_rate_endpoint'), params, method='Rate')
+
+        # Extract the XML data from the parsed response
+        package_info = raw_response.find('Package')
+
+        # Get the updated postage information for the package
+        postage_info = package_info.find('Postage')
+
+        # Get the services options
+        services_info = postage_info.find('SpecialServices')
+
+        # Make a new `RateCalculation` in case something has changed
+        new_rate = RateCalculation(
+            rate.package,
+            postage_info.find('Rate').text,
+            HTMLParser.HTMLParser().unescape(postage_info.find('MailService').text)
+        )
+
+        # For each of the options provided, add it to the options
+        for service in services_info.findall('SpecialService'):
+            new_rate.options.append(
+                RateOption(
+                    service.find('ServiceName').text, 
+                    service.find('Price').text,
+                    id=service.find('ServiceID'),
+                )
+            )
+
+        return new_rate

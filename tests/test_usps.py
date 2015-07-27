@@ -82,3 +82,15 @@ class USPSTests(TestCase):
 			response = self.usps.getRate(package=package)
 		except NotImplementedError:
 			self.assertTrue(True)
+
+	# Test rate detail fetching for a domestic rate
+	def test_valid_rate_detail_calculation(self):
+		package = Package((1, 8), 12, 12, 13, True, '11218', '11780')
+
+		response = self.usps.getRate(package=package)
+
+		# Get the detailed options for all of the shipping methods available for USPS
+		for rate in response.rates:
+			detailed_rate = self.usps.getDetailedRate(rate)
+
+			self.assertEqual(rate.price, detailed_rate.price)

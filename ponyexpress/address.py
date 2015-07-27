@@ -1,4 +1,4 @@
-class AddressValidationResponse:
+class AddressValidationResponse(object):
 	'''
 	Response object containing the results of a address validation request.
 	The number of results returned will vary based on whether the valiation was a success.

@@ -6,7 +6,7 @@ from exceptions import NotImplementedError, SyntaxError
 from ponyexpress.address import Address, AddressValidationResponse
 from ponyexpress.config import XML_RESPONSE
 from ponyexpress.courier import BaseCourier
-from ponyexpress.rates import Package, RateCalculation, RateCalculationResponse
+from ponyexpress.rates import Package, RateCalculation, RateCalculationResponse, RateOption
 from ponyexpress.tracking import TrackingResponse, TrackingEvent
 
 class BaseTests(TestCase):
@@ -152,13 +152,19 @@ class BaseRateTests(TestCase):
 		rate = RateCalculation(package, 24.50, 'Priority 2-Day')
 
 		# Make sure the price is correct
-		self.assertEqual(rate.rate, 24.50)
+		self.assertEqual(rate.price, 24.50)
 
 		# Reassign to test string parsing or costs
 		rate = RateCalculation(package, '42.50', 'Priority 1-Day')
 
 		# Make sure the price is correct
-		self.assertEqual(rate.rate, 42.50)
+		self.assertEqual(rate.price, 42.50)
+
+		# Adds an option for the rate
+		rate.options.append(RateOption('Tracking', 12.5))
+
+		# Make sure the correct number of objects are the
+		self.assertEqual(len(rate.options), 1)
 
 	# Test the RateCalculationResponse object
 	def test_rate_calculation_response(self):
@@ -170,4 +176,13 @@ class BaseRateTests(TestCase):
 		# Rates are added in no particular ordering
 		response = RateCalculationResponse(rate_1, rate_2)
 
-		self.assertEqual(response.cheapest().rate, 24.50)
+		self.assertEqual(response.cheapest().price, 24.50)
+
+	# Test the RateOption object
+	def test_rate_option(self):
+		# Make a new instance of the rate option
+		option = RateOption('Tracking', '2.50', id='123')
+
+		# Verify price was converted and kwargs added
+		self.assertEqual(option.price, 2.5)
+		self.assertEqual(option.id, '123')

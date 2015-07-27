@@ -4,7 +4,7 @@ from datetime import datetime as dt
 ACCEPTANCE_METHODS = ['ACCEPTED', 'PICKED UP']
 DELIVERED_METHODS = ['DELIVERED', ]
 
-class TrackingResponse:
+class TrackingResponse(object):
 	'''
 	Response object containing all of the tracking events and helper methods for formating data.
 
@@ -55,7 +55,7 @@ class TrackingResponse:
 			self.events.extend(events);
 
 
-class TrackingEvent:
+class TrackingEvent(object):
 		'''
 		Contains basic information associated with the status of a package/letter.
 
