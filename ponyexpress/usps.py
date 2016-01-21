@@ -167,17 +167,17 @@ class USPSCourier(BaseCourier):
         for event in raw_events:
             response.add(
                 TrackingEvent(
-                    event.find('EventState').text,
-                    event.find('EventCity').text,
+                    event.find('EventState').text or 'NONE',
+                    event.find('EventCity').text or 'NONE',
                     event.find('EventZIPCode').text,
                     event.find('Event').text,
-                    event.find('EventDate').text,
-                    event.find('EventTime').text,
+                    event.find('EventDate').text or 'January 01, 1970',
+                    event.find('EventTime').text or '12:00 am',
                     date_format='%B %d, %Y',
                     time_format='%I:%M %p'
                 )
             )
-        
+
         return response
 
     '''
@@ -233,7 +233,7 @@ class USPSCourier(BaseCourier):
 
         # The reason we format the method second is so that the getDetailedRates code can speicify without going crazy with string parsing.
         params = {
-            'package': package._xml.format(method=method) # We only allow a single method type since documentation for multiple is poor :/.
+            'package': package._xml.format(method=method)   # We only allow a single method type since documentation for multiple is poor :/.
         }
 
         # Make a request for the rate-level information
@@ -249,7 +249,7 @@ class USPSCourier(BaseCourier):
 
         # Gather all of the rates that got returned
         raw_rates = package_info.findall('Postage')
-        
+
         # Create the TrackingResponse and TrackingEvents
         response = RateCalculationResponse()
         for rate in raw_rates:
@@ -275,7 +275,7 @@ class USPSCourier(BaseCourier):
     def getDetailedRate(self, rate):
         # Purify the shipping method, there is a lot of junk in there...
         for service in self._services:
-            match = re.search(service, re.sub(r'<([a-zA-Z]+)></\1>', '', rate.method.encode('ascii','ignore')).upper())
+            match = re.search(service, re.sub(r'<([a-zA-Z]+)></\1>', '', rate.method.encode('ascii', 'ignore')).upper())
             if match is not None:
                 break
         method = match.group(1)
@@ -308,7 +308,7 @@ class USPSCourier(BaseCourier):
         for service in services_info.findall('SpecialService'):
             new_rate.options.append(
                 RateOption(
-                    service.find('ServiceName').text, 
+                    service.find('ServiceName').text,
                     service.find('Price').text,
                     id=service.find('ServiceID'),
                 )

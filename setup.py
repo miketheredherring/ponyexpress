@@ -9,9 +9,11 @@ here = os.path.abspath(os.path.dirname(__file__))
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
+
 def read(*parts):
     # intentionally *not* adding an encoding option to open
     return codecs.open(os.path.join(here, *parts), 'r').read()
+
 
 def find_version(*file_paths):
     version_file = read(*file_paths)
@@ -34,7 +36,7 @@ setup(
     author_email='miketheredherring@gmail.com',
     classifiers=[
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License', # example license
+        'License :: OSI Approved :: MIT License',   # example license
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         # Replace these appropriately if you are stuck on Python 2.
