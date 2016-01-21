@@ -4,7 +4,7 @@ from unittest import TestCase
 from exceptions import NotImplementedError, SyntaxError
 
 from ponyexpress.address import Address, AddressValidationResponse
-from ponyexpress.config import XML_RESPONSE
+from ponyexpress.config import XML_RESPONSE, JSON_RESPONSE
 from ponyexpress.courier import BaseCourier
 from ponyexpress.rates import Package, RateCalculation, RateCalculationResponse, RateOption
 from ponyexpress.tracking import TrackingResponse, TrackingEvent

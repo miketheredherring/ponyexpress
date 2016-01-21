@@ -1,12 +1,13 @@
 language: python
 python:
-  - "2.7"
-# command to install dependencies
-install: 
-  - pip install -r requirements.txt
-  - pip install coveralls
-# command to run tests
-script: 
-  - nosetests --with-coverage --cover-package=ponyexpress
+- '2.7'
+install:
+- pip install -r requirements.txt
+- pip install coveralls
+script:
+- nosetests --with-coverage --cover-package=ponyexpress
 after_success:
-  - coveralls
+- coveralls
+notifications:
+  slack:
+    secure: Ds5EfVQzhxxR7gnMpYQSwyXA0/2KFy2VlT5WrmUiQlrJ3+Th3WquAG1op6c9KVAftwxdV4NdlyctwDK+5ggPOn5Bv+Im/ZxlFlU9nGoNzfCmLHmCAtj3GP3aGFfkT4nYAOeDFmlCJBJQtfxzHFMlf3Kz+cxfhHEH5KhRw9wnLtGfyZyHc/km2rzYxBmk+pNyyskj4wwufNKwxH2zjsr4WseztKXwq6hO49HG/Jjbia9ekcKkAGw4msVEpwI4HwsFCM9VWKhBjni+N+U+x5M6/WtwDRJ8yzR5k8F1lXQyirmrnikbONVmPKg2XmpfVUjJKhjl6/8XWpZKKLHGmN4SbAqZPlKgy7xwRTYgIflzJ/yILF9j0pMFg2x2Vg5VcyrIFMsufayWVh+hW/xsjBSbtSKAd6510qfZ2W7915lqMjlEZZV5ng5DfNI22pBGBiBxcdtjnP1L7QJSB2QhpOjWULkC3CLihXW5bBdW5Vl0MHBB4XKlCOOP18PWrBqLST+vkiglBvM1unY1BaaVWtJ+gde0pazpQzBQSs9r/uXnBzjrIuRCbqa90S1gSmt0yn0rxnfUEOl7h/YrNhyT5TOx/8CfhZxywx61ZCObTFS8QMhoEKa9BRmNRm/Amhhg1eufVXijwqg/ntx2biKLrhf2JmLbw1HCmOscmK3PbuRjRxY=
