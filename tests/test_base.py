@@ -1,7 +1,6 @@
 import os
 from datetime import datetime as dt
 from unittest import TestCase
-from exceptions import NotImplementedError, SyntaxError
 
 from ponyexpress.address import Address
 from ponyexpress.config import XML_RESPONSE

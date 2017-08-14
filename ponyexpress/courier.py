@@ -1,11 +1,9 @@
 '''
 Base carrier class and helper objects.
 '''
-import os, requests, json
+import requests, json
 import xml.etree.ElementTree as et
 from xml.etree.ElementTree import ParseError
-from datetime import datetime as dt
-from exceptions import NotImplementedError, SyntaxError, ValueError
 
 from ponyexpress.config import JSON_RESPONSE
 

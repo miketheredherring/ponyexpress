@@ -1,5 +1,4 @@
 import os
-from exceptions import NotImplementedError, TypeError
 from datetime import datetime as dt
 from unittest import TestCase
 
@@ -93,5 +92,4 @@ class USPSTests(TestCase):
         # Get the detailed options for all of the shipping methods available for USPS
         for rate in response.rates:
             detailed_rate = self.usps.getDetailedRate(rate)
-
-        self.assertEqual(rate.price, detailed_rate.price)
+            self.assertEqual(rate.price, detailed_rate.price)
