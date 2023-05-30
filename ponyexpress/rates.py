@@ -45,7 +45,7 @@ class Package(object):
         if isinstance(value, tuple):
             self._weight = value
         else:
-            self._weight = ((value / 16), (value % 16))
+            self._weight = ((value // 16), (value % 16))
 
     # Returns the 'Size' of the `Package`, which could be LARGE or REGULAR. If any dimention
     # exceeds 12", then the `Package` is considered LARGE.
@@ -82,7 +82,7 @@ class RateCalculationResponse(object):
     # Adds `RateCalculations` to the response
     def add(self, *rates):
         # Extend the list of results with the new ones
-        if len(rates):
+        if rates:
             self.rates.extend(rates)
 
     # Returns the `RateCalculation` associated with the lowest price
@@ -107,7 +107,7 @@ class RateOption(object):
         self.price = float(price)
 
         # Unpack potentially unknow values
-        for key, val in kwargs.iteritems():
+        for key, val in kwargs.items():
             setattr(self, key, val)
 
 

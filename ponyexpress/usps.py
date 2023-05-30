@@ -1,5 +1,6 @@
-import HTMLParser, re
-from exceptions import TypeError
+import re
+from html.parser import HTMLParser
+from builtins import str
 
 from ponyexpress.address import AddressValidationResponse, Address
 from ponyexpress.config import XML_RESPONSE
@@ -70,7 +71,7 @@ class USPSCourier(BaseCourier):
         super(USPSCourier, self).process_exception(error)
 
     '''
-    USPS Address Validation V4 API. Returns one or many `Address` objects depending on the validity of 
+    USPS Address Validation V4 API. Returns one or many `Address` objects depending on the validity of
     the user provided information, and whether the response was valid.
 
     ## Parameters
@@ -222,13 +223,13 @@ class USPSCourier(BaseCourier):
                 id='0',
                 origin_zip=package.origin,
                 destination_zip=package.destination,
-                weight_lb=unicode(package.weight[0]),
-                weight_oz=unicode(package.weight[1]),
+                weight_lb=str(package.weight[0]),
+                weight_oz=str(package.weight[1]),
                 shape=package.shape,
                 size=package.size,
-                width=unicode(package.width),
-                length=unicode(package.length),
-                height=unicode(package.height)
+                width=str(package.width),
+                length=str(package.length),
+                height=str(package.height)
             )
 
         # The reason we format the method second is so that the getDetailedRates code can speicify without going crazy with string parsing.
@@ -257,7 +258,7 @@ class USPSCourier(BaseCourier):
                 RateCalculation(
                     package,
                     rate.find('Rate').text,
-                    HTMLParser.HTMLParser().unescape(rate.find('MailService').text)
+                    HTMLParser().unescape(rate.find('MailService').text)
                 )
             )
 
@@ -301,7 +302,7 @@ class USPSCourier(BaseCourier):
         new_rate = RateCalculation(
             rate.package,
             postage_info.find('Rate').text,
-            HTMLParser.HTMLParser().unescape(postage_info.find('MailService').text)
+            HTMLParser().unescape(postage_info.find('MailService').text)
         )
 
         # For each of the options provided, add it to the options
